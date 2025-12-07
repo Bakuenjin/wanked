@@ -157,12 +157,12 @@ export function formatStatsForEmbed(stats: PlayerStats): {
       inline: true,
     },
     {
-      name: '✅ Games Won',
+      name: '✅ Games Solved',
       value: `${stats.totalWins}`,
       inline: true,
     },
     {
-      name: '📈 Win Rate',
+      name: '📈 Solve Rate',
       value: `${stats.winRate}%`,
       inline: true,
     },
@@ -189,7 +189,7 @@ export function formatStatsForEmbed(stats: PlayerStats): {
       .slice(0, 3)
       .map((game) => {
         const changeText = game.eloChange >= 0 ? `+${game.eloChange}` : `${game.eloChange}`;
-        return `${game.gameDate}: ${game.guessCount}/6 (${changeText})`;
+        return `${game.gameDate}: ${game.guessCount}/6 (${changeText} ELO)`;
       })
       .join('\n');
 
