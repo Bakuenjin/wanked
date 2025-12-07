@@ -42,13 +42,19 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       return;
     }
     
+    // Get guild member for display name and avatar (fallback to global user)
+    const guildMember = interaction.guild?.members.cache.get(targetUser.id) 
+      ?? await interaction.guild?.members.fetch(targetUser.id).catch(() => null);
+    const displayName = guildMember?.displayName ?? targetUser.displayName ?? targetUser.username;
+    const avatarUrl = guildMember?.displayAvatarURL() ?? targetUser.displayAvatarURL();
+    
     // Build embed
     const { fields } = formatStatsForEmbed(stats);
     
     const embed = new EmbedBuilder()
-      .setTitle(`📊 Wordle Stats: ${stats.username}`)
+      .setTitle(`📊 Wordle Stats: ${displayName}`)
       .setColor(stats.isActive ? 0x00FF00 : 0xFF6600)
-      .setThumbnail(targetUser.displayAvatarURL())
+      .setThumbnail(avatarUrl)
       .addFields(fields)
       .setFooter({ text: 'Wordle Ranked Bot' })
       .setTimestamp();
