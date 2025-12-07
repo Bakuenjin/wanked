@@ -8,32 +8,28 @@ import { Guild, Role, Snowflake } from 'discord.js';
 import { getLogger } from '../utils/logger';
 import { RoleAssignment } from '../types';
 import {
-  getHighestEloPlayer,
-  getLowestEloPlayer,
+  getHighestEloPlayers,
+  getLowestEloPlayers,
 } from '../database/playerRepository';
 
 /**
  * Get current role assignment data
  */
 export function getRoleAssignmentData(): RoleAssignment {
-  const highest = getHighestEloPlayer();
-  const lowest = getLowestEloPlayer();
+  const highest = getHighestEloPlayers();
+  const lowest = getLowestEloPlayers();
 
   return {
-    highestEloPlayer: highest
-      ? {
-          discordId: highest.discordId,
-          username: highest.username,
-          elo: highest.elo,
-        }
-      : null,
-    lowestEloPlayer: lowest
-      ? {
-          discordId: lowest.discordId,
-          username: lowest.username,
-          elo: lowest.elo,
-        }
-      : null,
+    highestEloPlayers: highest.map((p) => ({
+      discordId: p.discordId,
+      username: p.username,
+      elo: p.elo,
+    })),
+    lowestEloPlayers: lowest.map((p) => ({
+      discordId: p.discordId,
+      username: p.username,
+      elo: p.elo,
+    })),
   };
 }
 
@@ -46,14 +42,14 @@ export async function updateRoles(
   lowestEloRoleId: Snowflake
 ): Promise<{
   success: boolean;
-  highestAssigned: string | null;
-  lowestAssigned: string | null;
+  highestAssigned: string[];
+  lowestAssigned: string[];
   errors: string[];
 }> {
   const logger = getLogger();
   const errors: string[] = [];
-  let highestAssigned: string | null = null;
-  let lowestAssigned: string | null = null;
+  let highestAssigned: string[] = [];
+  let lowestAssigned: string[] = [];
 
   try {
     // Get roles
@@ -76,33 +72,35 @@ export async function updateRoles(
 
     // Update highest ELO role
     if (highestRole) {
+      const newOwnerIds = assignment.highestEloPlayers.map((p) => p.discordId);
       const result = await updateSingleRole(
         guild,
         highestRole,
-        assignment.highestEloPlayer?.discordId ?? null,
+        newOwnerIds,
         'highest'
       );
-      if (result.error) {
-        errors.push(result.error);
+      if (result.errors.length > 0) {
+        errors.push(...result.errors);
       }
       highestAssigned = result.assignedTo;
     }
 
     // Update lowest ELO role
     if (lowestRole) {
+      const newOwnerIds = assignment.lowestEloPlayers.map((p) => p.discordId);
       const result = await updateSingleRole(
         guild,
         lowestRole,
-        assignment.lowestEloPlayer?.discordId ?? null,
+        newOwnerIds,
         'lowest'
       );
-      if (result.error) {
-        errors.push(result.error);
+      if (result.errors.length > 0) {
+        errors.push(...result.errors);
       }
       lowestAssigned = result.assignedTo;
     }
 
-    logger.info(`Role updates complete. Highest: ${highestAssigned}, Lowest: ${lowestAssigned}`);
+    logger.info(`Role updates complete. Highest: ${highestAssigned.join(', ') || 'none'}, Lowest: ${lowestAssigned.join(', ') || 'none'}`);
 
     return {
       success: errors.length === 0,
@@ -119,23 +117,26 @@ export async function updateRoles(
 }
 
 /**
- * Update a single role assignment
+ * Update a single role assignment (supports multiple owners)
  */
 async function updateSingleRole(
   guild: Guild,
   role: Role,
-  newOwnerId: Snowflake | null,
+  newOwnerIds: Snowflake[],
   roleType: 'highest' | 'lowest'
-): Promise<{ assignedTo: string | null; error: string | null }> {
+): Promise<{ assignedTo: string[]; errors: string[] }> {
   const logger = getLogger();
+  const assignedTo: string[] = [];
+  const errors: string[] = [];
 
   try {
     // Get all members with this role
     const membersWithRole = role.members;
+    const newOwnerIdSet = new Set(newOwnerIds);
 
-    // Remove role from all current holders
+    // Remove role from members who should no longer have it
     for (const [memberId, member] of membersWithRole) {
-      if (memberId !== newOwnerId) {
+      if (!newOwnerIdSet.has(memberId)) {
         try {
           await member.roles.remove(role);
           logger.debug(`Removed ${roleType} ELO role from ${member.user.username}`);
@@ -145,26 +146,26 @@ async function updateSingleRole(
       }
     }
 
-    // Assign to new owner
-    if (newOwnerId) {
+    // Assign to all new owners
+    for (const newOwnerId of newOwnerIds) {
       try {
         const newOwner = await guild.members.fetch(newOwnerId);
         if (!newOwner.roles.cache.has(role.id)) {
           await newOwner.roles.add(role);
           logger.info(`Assigned ${roleType} ELO role to ${newOwner.user.username}`);
         }
-        return { assignedTo: newOwner.user.username, error: null };
+        assignedTo.push(newOwner.user.username);
       } catch (error) {
         const errorMessage = `Could not assign ${roleType} role to ${newOwnerId}: ${error}`;
         logger.warn(errorMessage);
-        return { assignedTo: null, error: errorMessage };
+        errors.push(errorMessage);
       }
     }
 
-    return { assignedTo: null, error: null };
+    return { assignedTo, errors };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return { assignedTo: null, error: errorMessage };
+    return { assignedTo, errors: [errorMessage] };
   }
 }
 

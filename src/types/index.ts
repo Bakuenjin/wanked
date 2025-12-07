@@ -150,19 +150,20 @@ export interface RecentGame {
 }
 
 /**
- * Role assignment data
+ * Player data for role assignment
+ */
+export interface RolePlayerData {
+  discordId: Snowflake;
+  username: string;
+  elo: number;
+}
+
+/**
+ * Role assignment data (supports multiple players with same ELO)
  */
 export interface RoleAssignment {
-  highestEloPlayer: {
-    discordId: Snowflake;
-    username: string;
-    elo: number;
-  } | null;
-  lowestEloPlayer: {
-    discordId: Snowflake;
-    username: string;
-    elo: number;
-  } | null;
+  highestEloPlayers: RolePlayerData[];
+  lowestEloPlayers: RolePlayerData[];
 }
 
 /**

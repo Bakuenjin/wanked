@@ -84,7 +84,7 @@ function buildPlayerStats(playerId: number): PlayerStats | null {
 }
 
 /**
- * Get leaderboard data
+ * Get leaderboard data with proper ranking (ties get same rank, followed by correct next rank)
  */
 export function getLeaderboard(
   limit: number = 10,
@@ -93,21 +93,38 @@ export function getLeaderboard(
   const players = activeOnly ? getActivePlayersByElo() : getAllPlayersByElo();
   const limited = players.slice(0, limit);
 
-  return limited.map((player, index) => {
+  const entries: LeaderboardEntry[] = [];
+  let currentRank = 1;
+  let previousElo: number | null = null;
+
+  for (let i = 0; i < limited.length; i++) {
+    const player = limited[i];
     const winRate = player.totalGames > 0
       ? (player.totalWins / player.totalGames) * 100
       : 0;
 
-    return {
-      rank: index + 1,
+    // If this player has same ELO as previous, they share the same rank
+    // Otherwise, their rank is their position + 1 (accounting for ties)
+    if (previousElo !== null && player.elo === previousElo) {
+      // Same rank as previous player
+    } else {
+      currentRank = i + 1;
+    }
+
+    entries.push({
+      rank: currentRank,
       discordId: player.discordId,
       username: player.username,
       elo: player.elo,
       totalGames: player.totalGames,
       winRate: Math.round(winRate * 100) / 100,
       isActive: player.isActive,
-    };
-  });
+    });
+
+    previousElo = player.elo;
+  }
+
+  return entries;
 }
 
 /**

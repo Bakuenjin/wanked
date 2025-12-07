@@ -164,6 +164,20 @@ export function getHighestEloPlayer(): Player | null {
 }
 
 /**
+ * Get all players with the highest ELO (handles ties)
+ */
+export function getHighestEloPlayers(): Player[] {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT * FROM players 
+    WHERE is_active = 1 AND elo = (
+      SELECT MAX(elo) FROM players WHERE is_active = 1
+    )
+  `).all() as Record<string, unknown>[];
+  return rows.map(rowToPlayer);
+}
+
+/**
  * Get player with lowest ELO (among active players with at least 1 game)
  */
 export function getLowestEloPlayer(): Player | null {
@@ -178,17 +192,33 @@ export function getLowestEloPlayer(): Player | null {
 }
 
 /**
- * Get player rank
+ * Get all players with the lowest ELO (handles ties, among active players with at least 1 game)
+ */
+export function getLowestEloPlayers(): Player[] {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT * FROM players 
+    WHERE is_active = 1 AND total_games > 0 AND elo = (
+      SELECT MIN(elo) FROM players WHERE is_active = 1 AND total_games > 0
+    )
+  `).all() as Record<string, unknown>[];
+  return rows.map(rowToPlayer);
+}
+
+/**
+ * Get player rank (players with same ELO share the same rank)
  */
 export function getPlayerRank(playerId: number): number {
   const db = getDatabase();
   const player = getPlayerById(playerId);
   if (!player) return 0;
   
+  // Count players with strictly higher ELO to determine rank
+  // Players with same ELO will have the same rank
   const result = db.prepare(`
     SELECT COUNT(*) as rank FROM players 
-    WHERE elo > ? OR (elo = ? AND id < ?)
-  `).get(player.elo, player.elo, playerId) as { rank: number };
+    WHERE elo > ?
+  `).get(player.elo) as { rank: number };
   
   return result.rank + 1;
 }
