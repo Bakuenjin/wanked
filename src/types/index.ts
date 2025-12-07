@@ -73,9 +73,9 @@ export interface DailyResults {
  * Individual player result from parsed message
  */
 export interface ParsedPlayerResult {
-  discordId: Snowflake;
-  username: string;
-  guessCount: number;
+  discordId?: Snowflake;  // Optional - may need to resolve from username
+  username: string;       // Username or nickname from the message
+  guessCount: number;     // 1-6 for successful, 7 for failed (x/6)
 }
 
 /**
