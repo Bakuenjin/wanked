@@ -19,8 +19,8 @@ import {
   saveDailySummary,
 } from '../database/gameRepository';
 import {
-  getHighestEloPlayer,
-  getLowestEloPlayer,
+  getHighestEloPlayers,
+  getLowestEloPlayers,
 } from '../database/playerRepository';
 
 /**
@@ -83,15 +83,15 @@ export function registerMessageHandler(client: Client, config: BotConfig): void 
       }
 
       // Get updated standings
-      const highest = getHighestEloPlayer();
-      const lowest = getLowestEloPlayer();
+      const highestPlayers = getHighestEloPlayers();
+      const lowestPlayers = getLowestEloPlayers();
 
-      // Save daily summary
+      // Save daily summary (use first player for backwards compatibility)
       saveDailySummary(
         dailyResults.gameDate,
         eloResults.length,
-        highest?.id ?? null,
-        lowest?.id ?? null,
+        highestPlayers[0]?.id ?? null,
+        lowestPlayers[0]?.id ?? null,
         dailyResults.wordleNumber
       );
 
@@ -100,8 +100,8 @@ export function registerMessageHandler(client: Client, config: BotConfig): void 
         dailyResults.gameDate,
         dailyResults.wordleNumber,
         eloResults.length,
-        highest ? { username: highest.username, elo: highest.elo } : null,
-        lowest ? { username: lowest.username, elo: lowest.elo } : null
+        highestPlayers.map((p) => ({ username: p.username, elo: p.elo })),
+        lowestPlayers.map((p) => ({ username: p.username, elo: p.elo }))
       );
 
       await message.reply({ embeds: [responseEmbed] });
@@ -122,8 +122,8 @@ function buildDailyResponseEmbed(
   gameDate: string,
   wordleNumber: number | undefined,
   participantCount: number,
-  highest: { username: string; elo: number } | null,
-  lowest: { username: string; elo: number } | null
+  highestPlayers: { username: string; elo: number }[],
+  lowestPlayers: { username: string; elo: number }[]
 ): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setTitle(`🎯 Wordle Ranked Results`)
@@ -144,18 +144,26 @@ function buildDailyResponseEmbed(
     },
   ];
 
-  if (highest) {
+  if (highestPlayers.length > 0) {
+    const highestText = highestPlayers
+      .map((p) => `**${p.username}**`)
+      .join(', ');
+    const elo = highestPlayers[0].elo;
     fields.push({
       name: '👑 Highest ELO',
-      value: `**${highest.username}** (${highest.elo})`,
+      value: `${highestText} (${elo})`,
       inline: true,
     });
   }
 
-  if (lowest) {
+  if (lowestPlayers.length > 0) {
+    const lowestText = lowestPlayers
+      .map((p) => `**${p.username}**`)
+      .join(', ');
+    const elo = lowestPlayers[0].elo;
     fields.push({
       name: '📉 Lowest ELO',
-      value: `**${lowest.username}** (${lowest.elo})`,
+      value: `${lowestText} (${elo})`,
       inline: true,
     });
   }
