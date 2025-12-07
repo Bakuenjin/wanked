@@ -1,0 +1,39 @@
+{
+  "name": "discord-wordle-ranked-bot",
+  "version": "1.0.0",
+  "description": "ELO-based ranked functionality for Discord Wordle",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "dev:watch": "nodemon --exec ts-node src/index.ts",
+    "lint": "eslint src/**/*.ts",
+    "deploy-commands": "ts-node src/deploy-commands.ts"
+  },
+  "keywords": [
+    "discord",
+    "wordle",
+    "elo",
+    "ranked",
+    "bot"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^9.2.2",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.10.0",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

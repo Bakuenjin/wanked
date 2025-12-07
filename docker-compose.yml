@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: wordle-ranked-bot
+    volumes:
+      # Persist SQLite database
+      - ./data:/app/data
+      # Persist logs
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/wordle_ranked.db
+    restart: unless-stopped
