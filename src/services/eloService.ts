@@ -136,7 +136,7 @@ export function processDailyResults(
 
   // Get or create players and collect their data
   const participants: { playerId: number; currentElo: number; guessCount: number }[] = [];
-  const playerMap = new Map<number, { discordId: string; guessCount: number; previousElo: number }>();
+  const playerMap = new Map<number, { discordId: string; guessCount: number; previousElo: number; hasCrown: boolean }>();
 
   for (const result of results) {
     // Get or create player
@@ -165,6 +165,7 @@ export function processDailyResults(
       discordId: result.discordId,
       guessCount: result.guessCount,
       previousElo: player.elo,
+      hasCrown: result.hasCrown,
     });
   }
 
@@ -187,7 +188,8 @@ export function processDailyResults(
       participant.playerId,
       playerData.guessCount,
       newElo,
-      gameDate
+      gameDate,
+      playerData.hasCrown
     );
 
     // Record game

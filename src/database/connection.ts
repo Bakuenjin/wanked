@@ -62,6 +62,7 @@ function createTables(database: Database.Database): void {
       elo INTEGER DEFAULT 1000,
       total_games INTEGER DEFAULT 0,
       total_wins INTEGER DEFAULT 0,
+      total_crowns INTEGER DEFAULT 0,
       total_guesses INTEGER DEFAULT 0,
       last_played TEXT,
       consecutive_inactive_days INTEGER DEFAULT 0,
@@ -126,6 +127,9 @@ function createTables(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_elo_history_date ON elo_history(game_date);
   `);
   
+  // Run migrations for existing databases
+  runMigrations(database);
+  
   logger.info('Database tables created/verified');
 }
 
@@ -137,6 +141,23 @@ export function closeDatabase(): void {
     db.close();
     db = null;
     getLogger().info('Database connection closed');
+  }
+}
+
+/**
+ * Run database migrations for existing databases
+ */
+function runMigrations(database: Database.Database): void {
+  const logger = getLogger();
+  
+  // Check if total_crowns column exists in players table
+  const tableInfo = database.prepare("PRAGMA table_info(players)").all() as Array<{ name: string }>;
+  const hasColumnTotalCrowns = tableInfo.some(col => col.name === 'total_crowns');
+  
+  if (!hasColumnTotalCrowns) {
+    logger.info('Running migration: Adding total_crowns column to players table');
+    database.exec(`ALTER TABLE players ADD COLUMN total_crowns INTEGER DEFAULT 0`);
+    logger.info('Migration complete: total_crowns column added');
   }
 }
 

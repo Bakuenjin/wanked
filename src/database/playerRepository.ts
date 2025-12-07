@@ -21,6 +21,7 @@ function rowToPlayer(row: Record<string, unknown>): Player {
     elo: row.elo as number,
     totalGames: row.total_games as number,
     totalWins: row.total_wins as number,
+    totalCrowns: (row.total_crowns as number) ?? 0,
     totalGuesses: row.total_guesses as number,
     lastPlayed: row.last_played as string | null,
     consecutiveInactiveDays: row.consecutive_inactive_days as number,
@@ -113,7 +114,8 @@ export function updatePlayerAfterGame(
   playerId: number,
   guessCount: number,
   newElo: number,
-  gameDate: string
+  gameDate: string,
+  hasCrown: boolean = false
 ): void {
   const db = getDatabase();
   const isWin = guessCount <= 6;
@@ -124,13 +126,14 @@ export function updatePlayerAfterGame(
       elo = ?,
       total_games = total_games + 1,
       total_wins = total_wins + ?,
+      total_crowns = total_crowns + ?,
       total_guesses = total_guesses + ?,
       last_played = ?,
       consecutive_inactive_days = 0,
       is_active = 1,
       updated_at = datetime('now')
     WHERE id = ?
-  `).run(newElo, isWin ? 1 : 0, guessCount, gameDate, playerId);
+  `).run(newElo, isWin ? 1 : 0, hasCrown ? 1 : 0, guessCount, gameDate, playerId);
 }
 
 /**

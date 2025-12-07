@@ -74,6 +74,7 @@ function buildPlayerStats(playerId: number): PlayerStats | null {
     rank,
     totalGames: player.totalGames,
     totalWins: player.totalWins,
+    totalCrowns: player.totalCrowns,
     averageGuesses: Math.round(averageGuesses * 100) / 100,
     winRate: Math.round(winRate * 100) / 100,
     isActive: player.isActive,
@@ -159,6 +160,11 @@ export function formatStatsForEmbed(stats: PlayerStats): {
     {
       name: '✅ Games Solved',
       value: `${stats.totalWins}`,
+      inline: true,
+    },
+    {
+      name: '👑 Wins',
+      value: `${stats.totalCrowns}`,
       inline: true,
     },
     {

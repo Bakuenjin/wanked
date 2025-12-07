@@ -16,7 +16,8 @@ export interface Player {
   discriminator: string;
   elo: number;
   totalGames: number;
-  totalWins: number;  // Games with 6/6
+  totalWins: number;  // Games solved (not failed)
+  totalCrowns: number;  // Games won (best score, marked with crown)
   totalGuesses: number;  // Sum of all guess counts for averaging
   lastPlayed: string | null;  // ISO date string
   consecutiveInactiveDays: number;
@@ -85,6 +86,7 @@ export interface ParsedPlayerResult {
   discordId: Snowflake;   // Required - must be resolved before use
   username: string;       // Username from Discord
   guessCount: number;     // 1-6 for successful, 7 for failed (x/6)
+  hasCrown: boolean;      // Whether this player had the best score (crown emoji)
 }
 
 /**
@@ -95,6 +97,7 @@ export interface UnresolvedPlayerResult {
   discordId?: Snowflake;  // Optional - may need to resolve from username
   username: string;       // Username or nickname from the message
   guessCount: number;     // 1-6 for successful, 7 for failed (x/6)
+  hasCrown: boolean;      // Whether this player had the best score (crown emoji)
 }
 
 /**
@@ -129,6 +132,7 @@ export interface PlayerStats {
   rank: number;
   totalGames: number;
   totalWins: number;
+  totalCrowns: number;  // Games won (best score)
   averageGuesses: number;
   winRate: number;  // Percentage
   isActive: boolean;

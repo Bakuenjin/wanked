@@ -39,6 +39,7 @@ const PATTERNS = {
  */
 interface ParsedRow {
   guessCount: number;  // 1-6 for success, 7 for failed (x/6)
+  hasCrown: boolean;   // Whether this row had the crown emoji (best score)
   players: Array<{
     discordId?: Snowflake;
     username: string;
@@ -76,6 +77,9 @@ export function extractStreakDays(content: string): number | undefined {
  */
 function parseResultRow(row: string): ParsedRow | null {
   const logger = getLogger();
+  
+  // Check if the row starts with crown emoji
+  const hasCrown = row.trim().startsWith('👑');
   
   // Match the row format: optional crown, guess count, colon, then players
   const rowMatch = row.match(/^(?:👑\s*)?([1-6x])\/6:\s*(.+)$/i);
@@ -134,7 +138,7 @@ function parseResultRow(row: string): ParsedRow | null {
     return null;
   }
   
-  return { guessCount, players };
+  return { guessCount, hasCrown, players };
 }
 
 /**
@@ -172,6 +176,7 @@ export function parseResultRows(content: string): UnresolvedPlayerResult[] {
         discordId: player.discordId,
         username: player.username,
         guessCount: parsedRow.guessCount,
+        hasCrown: parsedRow.hasCrown,
       });
     }
   }
@@ -262,6 +267,7 @@ export async function resolveUsernames(
           discordId: result.discordId,
           username: member.user.username,
           guessCount: result.guessCount,
+          hasCrown: result.hasCrown,
         });
       } else if (result.username) {
         // We only have a username - search for matching member
@@ -277,6 +283,7 @@ export async function resolveUsernames(
             discordId: matchingMember.id as Snowflake,
             username: matchingMember.user.username,
             guessCount: result.guessCount,
+            hasCrown: result.hasCrown,
           });
           logger.debug(`Resolved username @${result.username} to ${matchingMember.user.username} (${matchingMember.id})`);
         } else {
