@@ -70,9 +70,28 @@ export interface DailyResults {
 }
 
 /**
- * Individual player result from parsed message
+ * Unresolved daily results (before username/ID resolution)
+ */
+export interface UnresolvedDailyResults {
+  gameDate: string;
+  wordleNumber?: number;
+  results: UnresolvedPlayerResult[];
+}
+
+/**
+ * Individual player result from parsed message (fully resolved)
  */
 export interface ParsedPlayerResult {
+  discordId: Snowflake;   // Required - must be resolved before use
+  username: string;       // Username from Discord
+  guessCount: number;     // 1-6 for successful, 7 for failed (x/6)
+}
+
+/**
+ * Unresolved player result (before username/ID resolution)
+ * Used internally by the message parser before resolution
+ */
+export interface UnresolvedPlayerResult {
   discordId?: Snowflake;  // Optional - may need to resolve from username
   username: string;       // Username or nickname from the message
   guessCount: number;     // 1-6 for successful, 7 for failed (x/6)

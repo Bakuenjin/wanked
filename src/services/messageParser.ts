@@ -13,7 +13,7 @@
  */
 
 import { Message, Snowflake } from 'discord.js';
-import { DailyResults, ParsedPlayerResult } from '../types';
+import { DailyResults, UnresolvedDailyResults, ParsedPlayerResult, UnresolvedPlayerResult } from '../types';
 import { getLogger } from '../utils/logger';
 
 /**
@@ -139,10 +139,11 @@ function parseResultRow(row: string): ParsedRow | null {
 
 /**
  * Parse all result rows from message content
+ * Returns unresolved results that need username/ID resolution
  */
-export function parseResultRows(content: string): ParsedPlayerResult[] {
+export function parseResultRows(content: string): UnresolvedPlayerResult[] {
   const logger = getLogger();
-  const results: ParsedPlayerResult[] = [];
+  const results: UnresolvedPlayerResult[] = [];
   
   // Split by newlines and process each line
   const lines = content.split('\n');
@@ -181,8 +182,9 @@ export function parseResultRows(content: string): ParsedPlayerResult[] {
 
 /**
  * Parse a complete Wordle bot message
+ * Returns unresolved results that need username/ID resolution
  */
-export function parseWordleMessage(message: Message): DailyResults | null {
+export function parseWordleMessage(message: Message): UnresolvedDailyResults | null {
   const logger = getLogger();
   const content = message.content;
   
@@ -225,9 +227,11 @@ export function parseWordleMessage(message: Message): DailyResults | null {
  * Resolve Discord IDs and usernames for parsed results using the guild
  * - For mentions with discordId: fetch the username
  * - For plain usernames: search for matching guild member
+ * 
+ * Only returns results that could be fully resolved (have both discordId and username)
  */
 export async function resolveUsernames(
-  results: ParsedPlayerResult[],
+  results: UnresolvedPlayerResult[],
   message: Message
 ): Promise<ParsedPlayerResult[]> {
   const logger = getLogger();
@@ -235,7 +239,7 @@ export async function resolveUsernames(
   
   if (!guild) {
     logger.warn('No guild available for resolving usernames');
-    return results;
+    return [];
   }
   
   const resolvedResults: ParsedPlayerResult[] = [];
@@ -246,7 +250,7 @@ export async function resolveUsernames(
     guildMembers = await guild.members.fetch();
   } catch (error) {
     logger.error('Failed to fetch guild members', error);
-    return results;
+    return [];
   }
   
   for (const result of results) {
@@ -255,8 +259,9 @@ export async function resolveUsernames(
         // We have a Discord ID - fetch the member to get username
         const member = await guild.members.fetch(result.discordId);
         resolvedResults.push({
-          ...result,
+          discordId: result.discordId,
           username: member.user.username,
+          guessCount: result.guessCount,
         });
       } else if (result.username) {
         // We only have a username - search for matching member
@@ -269,25 +274,21 @@ export async function resolveUsernames(
         
         if (matchingMember) {
           resolvedResults.push({
-            ...result,
             discordId: matchingMember.id as Snowflake,
             username: matchingMember.user.username,
+            guessCount: result.guessCount,
           });
           logger.debug(`Resolved username @${result.username} to ${matchingMember.user.username} (${matchingMember.id})`);
         } else {
           logger.warn(`Could not find guild member matching username: @${result.username}`);
-          // Keep the result with just the username, no discordId
-          resolvedResults.push(result);
+          // Skip this result - cannot be resolved
         }
       } else {
         logger.warn('Result has neither discordId nor username');
       }
     } catch (error) {
       logger.warn(`Could not resolve user ${result.discordId || result.username}`, error);
-      resolvedResults.push({
-        ...result,
-        username: result.username || `User-${result.discordId?.slice(-4) || 'unknown'}`,
-      });
+      // Skip this result - resolution failed
     }
   }
   
@@ -296,7 +297,7 @@ export async function resolveUsernames(
 
 /**
  * Full parse pipeline: parse message and resolve usernames
- * Filters out any results that couldn't be resolved to a Discord ID
+ * Only returns results that could be fully resolved to a Discord ID
  */
 export async function parseAndResolveWordleMessage(
   message: Message
@@ -308,29 +309,23 @@ export async function parseAndResolveWordleMessage(
     return null;
   }
   
-  // Resolve usernames and Discord IDs
-  const resolved = await resolveUsernames(parsed.results, message);
+  // Resolve usernames and Discord IDs (only returns fully resolved results)
+  const resolvedResults = await resolveUsernames(parsed.results, message);
   
-  // Filter out results without a Discord ID (couldn't be resolved)
-  const validResults = resolved.filter(result => {
-    if (!result.discordId) {
-      logger.warn(`Skipping result for @${result.username} - could not resolve Discord ID`);
-      return false;
-    }
-    return true;
-  });
-  
-  if (validResults.length === 0) {
+  if (resolvedResults.length === 0) {
     logger.warn('No valid results after resolution');
     return null;
   }
   
-  if (validResults.length < resolved.length) {
-    logger.warn(`${resolved.length - validResults.length} results could not be resolved`);
+  if (resolvedResults.length < parsed.results.length) {
+    logger.warn(`${parsed.results.length - resolvedResults.length} results could not be resolved`);
   }
   
-  parsed.results = validResults;
-  return parsed;
+  return {
+    gameDate: parsed.gameDate,
+    wordleNumber: parsed.wordleNumber,
+    results: resolvedResults,
+  };
 }
 
 /**
