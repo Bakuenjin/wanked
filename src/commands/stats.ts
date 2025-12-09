@@ -34,19 +34,19 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     
     // Get player stats
     const stats = getPlayerStatsByDiscordId(targetUser.id);
-    
-    if (!stats) {
-      await interaction.editReply({
-        content: `❌ No stats found for ${targetUser.username}. They haven't played any Wordle games yet!`,
-      });
-      return;
-    }
-    
+
     // Get guild member for display name and avatar (fallback to global user)
     const guildMember = interaction.guild?.members.cache.get(targetUser.id) 
       ?? await interaction.guild?.members.fetch(targetUser.id).catch(() => null);
     const displayName = guildMember?.displayName ?? targetUser.displayName ?? targetUser.username;
     const avatarUrl = guildMember?.displayAvatarURL() ?? targetUser.displayAvatarURL();
+    
+    if (!stats) {
+      await interaction.editReply({
+        content: `❌ No stats found for ${displayName}. They haven't played any Wordle games yet!`,
+      });
+      return;
+    }
     
     // Build embed
     const { fields } = formatStatsForEmbed(stats);

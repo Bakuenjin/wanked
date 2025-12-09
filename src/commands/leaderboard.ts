@@ -50,21 +50,6 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       return;
     }
     
-    // Fetch guild members for display names
-    const guild = interaction.guild;
-    if (guild) {
-      const discordIds = leaderboard.map((entry) => entry.discordId);
-      await guild.members.fetch({ user: discordIds }).catch(() => null);
-      
-      // Update leaderboard entries with guild display names
-      for (const entry of leaderboard) {
-        const member = guild.members.cache.get(entry.discordId);
-        if (member) {
-          entry.username = member.displayName;
-        }
-      }
-    }
-    
     // Format leaderboard
     const leaderboardText = formatLeaderboardForEmbed(leaderboard);
     

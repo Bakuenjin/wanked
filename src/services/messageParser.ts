@@ -265,27 +265,39 @@ export async function resolveUsernames(
         const member = await guild.members.fetch(result.discordId);
         resolvedResults.push({
           discordId: result.discordId,
-          username: member.user.username,
+          username: member.displayName || member.user.displayName || member.user.username,
           guessCount: result.guessCount,
           hasCrown: result.hasCrown,
         });
       } else if (result.username) {
         // We only have a username - search for matching member
+        // First try exact match, then fall back to startsWith for usernames with spaces
         const searchName = result.username.toLowerCase();
-        const matchingMember = guildMembers.find(member => 
+        
+        // Try exact match first
+        let matchingMember = guildMembers.find(member => 
           member.user.username.toLowerCase() === searchName ||
           member.displayName.toLowerCase() === searchName ||
           member.nickname?.toLowerCase() === searchName
         );
         
+        // If no exact match, try startsWith (handles usernames with spaces like "John Doe" when we captured "John")
+        if (!matchingMember) {
+          matchingMember = guildMembers.find(member => 
+            member.user.username.toLowerCase().startsWith(searchName) ||
+            member.displayName.toLowerCase().startsWith(searchName) ||
+            member.nickname?.toLowerCase().startsWith(searchName)
+          );
+        }
+        
         if (matchingMember) {
           resolvedResults.push({
             discordId: matchingMember.id as Snowflake,
-            username: matchingMember.user.username,
+            username: matchingMember.displayName || matchingMember.user.displayName || matchingMember.user.username,
             guessCount: result.guessCount,
             hasCrown: result.hasCrown,
           });
-          logger.debug(`Resolved username @${result.username} to ${matchingMember.user.username} (${matchingMember.id})`);
+          logger.debug(`Resolved username @${result.username} to ${matchingMember.displayName || matchingMember.user.displayName || matchingMember.user.username} (${matchingMember.id})`);
         } else {
           logger.warn(`Could not find guild member matching username: @${result.username}`);
           // Skip this result - cannot be resolved
