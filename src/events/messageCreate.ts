@@ -1,77 +1,90 @@
 /**
  * Message Create Event Handler
- * 
+ *
  * Listens for Wordle bot messages and processes daily results
  */
 
-import { Client, Events, Message, EmbedBuilder } from 'discord.js';
-import { getLogger } from '../utils/logger';
-import { BotConfig } from '../types';
+import { Client, Events, Message, EmbedBuilder } from 'discord.js'
+import { getLogger } from '../utils/logger'
+import { BotConfig } from '../types'
 import {
   isWordleMessage,
-  parseAndResolveWordleMessage,
-} from '../services/messageParser';
-import { processDailyResults } from '../services/eloService';
-import { updatePlayerActivity } from '../services/activityService';
-import { updateRoles } from '../services/roleService';
+  parseAndResolveWordleMessage
+} from '../services/messageParser'
+import { processDailyResults } from '../services/eloService'
+import { updatePlayerActivity } from '../services/activityService'
+import { updateRoles } from '../services/roleService'
 import {
-  isDailyResultsProcessed,
-  saveDailySummary,
-} from '../database/gameRepository';
+  findNextUnprocessedDate,
+  saveDailySummary
+} from '../database/gameRepository'
 import {
   getHighestEloPlayers,
-  getLowestEloPlayers,
-} from '../database/playerRepository';
+  getLowestEloPlayers
+} from '../database/playerRepository'
 
 /**
  * Register message create event handler
  */
-export function registerMessageHandler(client: Client, config: BotConfig): void {
-  const logger = getLogger();
+export function registerMessageHandler(
+  client: Client,
+  config: BotConfig
+): void {
+  const logger = getLogger()
 
   client.on(Events.MessageCreate, async (message: Message) => {
     // Ignore messages from our bot
     if (message.author.id === client.user?.id) {
-      return;
+      return
     }
 
     // Check if message is from Wordle bot
     if (!isWordleMessage(message, config.discord.wordleBotId)) {
-      return;
+      return
     }
 
-    logger.info(`Received message from Wordle bot in ${message.guild?.name || 'DM'}`);
+    logger.info(
+      `Received message from Wordle bot in ${message.guild?.name || 'DM'}`
+    )
 
     try {
       // Parse the message
-      const dailyResults = await parseAndResolveWordleMessage(message);
+      const dailyResults = await parseAndResolveWordleMessage(message)
 
       if (!dailyResults) {
-        logger.debug('Message did not contain parseable ranked results');
-        return;
+        logger.debug('Message did not contain parseable ranked results')
+        return
       }
 
-      // Check if already processed
-      if (isDailyResultsProcessed(dailyResults.gameDate)) {
-        logger.warn(`Results for ${dailyResults.gameDate} already processed, skipping`);
-        return;
+      const gameDate = findNextUnprocessedDate(dailyResults.gameDate)
+
+      if (!gameDate) {
+        logger.warn('No unprocessed dates found for daily results')
+        return
+      }
+
+      if (gameDate !== dailyResults.gameDate) {
+        logger.info(
+          `Adjusted game date from ${dailyResults.gameDate} to ${gameDate}`
+        )
+        dailyResults.gameDate = gameDate // Update to the adjusted date
       }
 
       // Process ELO calculations
       const eloResults = processDailyResults(
         dailyResults.results,
-        dailyResults.gameDate,
+        gameDate, // Use the adjusted game date
         config.elo,
         dailyResults.wordleNumber
-      );
+      )
 
       if (eloResults.length === 0) {
-        logger.warn('No ELO calculations performed');
-        return;
+        logger.warn('No ELO calculations performed')
+        return
       }
 
       // Update player activity
-      updatePlayerActivity(dailyResults.gameDate, config.inactivityThreshold);
+      updatePlayerActivity(gameDate, config.inactivityThreshold)
 
       // Update roles
       if (message.guild) {
@@ -79,40 +92,42 @@ export function registerMessageHandler(client: Client, config: BotConfig): void 
           message.guild,
           config.discord.highestEloRoleId,
           config.discord.lowestEloRoleId
-        );
+        )
       }
 
       // Get updated standings
-      const highestPlayers = getHighestEloPlayers();
-      const lowestPlayers = getLowestEloPlayers();
+      const highestPlayers = getHighestEloPlayers()
+      const lowestPlayers = getLowestEloPlayers()
 
       // Save daily summary (use first player for backwards compatibility)
       saveDailySummary(
-        dailyResults.gameDate,
+        gameDate, // Use the adjusted game date
         eloResults.length,
         highestPlayers[0]?.id ?? null,
         lowestPlayers[0]?.id ?? null,
         dailyResults.wordleNumber
-      );
+      )
 
       // Reply to the Wordle bot message
       const responseEmbed = buildDailyResponseEmbed(
-        dailyResults.gameDate,
+        gameDate, // Use the adjusted game date
         dailyResults.wordleNumber,
         eloResults.length,
         highestPlayers.map((p) => ({ username: p.username, elo: p.elo })),
         lowestPlayers.map((p) => ({ username: p.username, elo: p.elo }))
-      );
+      )
 
-      await message.reply({ embeds: [responseEmbed] });
+      await message.reply({ embeds: [responseEmbed] })
 
-      logger.info(`Successfully processed ${eloResults.length} results for ${dailyResults.gameDate}`);
+      logger.info(
+        `Successfully processed ${eloResults.length} results for ${gameDate}`
+      )
     } catch (error) {
-      logger.error(`Error processing Wordle message: ${error}`);
+      logger.error(`Error processing Wordle message: ${error}`)
     }
-  });
+  })
 
-  logger.info('Message handler registered');
+  logger.info('Message handler registered')
 }
 
 /**
@@ -127,51 +142,49 @@ function buildDailyResponseEmbed(
 ): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setTitle(`🎯 Wordle Ranked Results`)
-    .setColor(0x6AA84F)
-    .setTimestamp();
+    .setColor(0x6aa84f)
+    .setTimestamp()
 
   if (wordleNumber) {
-    embed.setDescription(`Wordle #${wordleNumber} - ${gameDate}`);
+    embed.setDescription(`Wordle #${wordleNumber} - ${gameDate}`)
   } else {
-    embed.setDescription(`Date: ${gameDate}`);
+    embed.setDescription(`Date: ${gameDate}`)
   }
 
   const fields = [
     {
       name: '👥 Participants',
       value: `${participantCount} players`,
-      inline: true,
-    },
-  ];
+      inline: true
+    }
+  ]
 
   if (highestPlayers.length > 0) {
     const highestText = highestPlayers
       .map((p) => `**${p.username}**`)
-      .join(', ');
-    const elo = highestPlayers[0].elo;
+      .join(', ')
+    const elo = highestPlayers[0].elo
     fields.push({
       name: '👑 Highest ELO',
       value: `${highestText} (${elo})`,
-      inline: true,
-    });
+      inline: true
+    })
   }
 
   if (lowestPlayers.length > 0) {
-    const lowestText = lowestPlayers
-      .map((p) => `**${p.username}**`)
-      .join(', ');
-    const elo = lowestPlayers[0].elo;
+    const lowestText = lowestPlayers.map((p) => `**${p.username}**`).join(', ')
+    const elo = lowestPlayers[0].elo
     fields.push({
       name: '📉 Lowest ELO',
       value: `${lowestText} (${elo})`,
-      inline: true,
-    });
+      inline: true
+    })
   }
 
-  embed.addFields(fields);
-  embed.setFooter({ text: 'Use /stats to view your ranking' });
+  embed.addFields(fields)
+  embed.setFooter({ text: 'Use /stats to view your ranking' })
 
-  return embed;
+  return embed
 }
 
-export default registerMessageHandler;
+export default registerMessageHandler
