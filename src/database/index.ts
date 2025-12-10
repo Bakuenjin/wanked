@@ -1,3 +1,3 @@
-export { initDatabase, getDatabase, closeDatabase } from './connection';
-export * from './playerRepository';
-export * from './gameRepository';
+export { initDatabase, getDatabase, closeDatabase } from './connection'
+export * from './playerRepository'
+export * from './gameRepository'

@@ -1,2 +1,2 @@
-export { createLogger, getLogger, initLogger } from './logger';
-export * from './date';
+export { createLogger, getLogger, initLogger } from './logger'
+export * from './date'

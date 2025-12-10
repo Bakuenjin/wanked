@@ -1,92 +1,92 @@
 /**
  * Discord Wordle Ranked Bot - Type Definitions
- * 
+ *
  * Core interfaces and types for the ELO ranking system
  */
 
-import { Snowflake } from 'discord.js';
+import { Snowflake } from 'discord.js'
 
 /**
  * Player entity stored in the database
  */
 export interface Player {
-  id: number;
-  discordId: Snowflake;
-  username: string;
-  discriminator: string;
-  elo: number;
-  totalGames: number;
-  totalWins: number;  // Games solved (not failed)
-  totalCrowns: number;  // Games won (best score, marked with crown)
-  totalGuesses: number;  // Sum of all guess counts for averaging
-  lastPlayed: string | null;  // ISO date string
-  consecutiveInactiveDays: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  id: number
+  discordId: Snowflake
+  username: string
+  discriminator: string
+  elo: number
+  totalGames: number
+  totalWins: number // Games solved (not failed)
+  totalCrowns: number // Games won (best score, marked with crown)
+  totalGuesses: number // Sum of all guess counts for averaging
+  lastPlayed: string | null // ISO date string
+  consecutiveInactiveDays: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 /**
  * Player creation data (without auto-generated fields)
  */
 export interface CreatePlayerData {
-  discordId: Snowflake;
-  username: string;
-  discriminator: string;
+  discordId: Snowflake
+  username: string
+  discriminator: string
 }
 
 /**
  * Game result from a Wordle game
  */
 export interface GameResult {
-  playerId: number;
-  discordId: Snowflake;
-  guessCount: number;  // 1-6 for successful games
-  gameDate: string;  // ISO date string (YYYY-MM-DD)
-  wordleNumber?: number;  // Wordle puzzle number if available
+  playerId: number
+  discordId: Snowflake
+  guessCount: number // 1-6 for successful games
+  gameDate: string // ISO date string (YYYY-MM-DD)
+  wordleNumber?: number // Wordle puzzle number if available
 }
 
 /**
  * Stored game record in database
  */
 export interface GameRecord {
-  id: number;
-  playerId: number;
-  guessCount: number;
-  gameDate: string;
-  wordleNumber: number | null;
-  eloChange: number;
-  eloBefore: number;
-  eloAfter: number;
-  createdAt: string;
+  id: number
+  playerId: number
+  guessCount: number
+  gameDate: string
+  wordleNumber: number | null
+  eloChange: number
+  eloBefore: number
+  eloAfter: number
+  createdAt: string
 }
 
 /**
  * Daily results parsed from Wordle bot message
  */
 export interface DailyResults {
-  gameDate: string;
-  wordleNumber?: number;
-  results: ParsedPlayerResult[];
+  gameDate: string
+  wordleNumber?: number
+  results: ParsedPlayerResult[]
 }
 
 /**
  * Unresolved daily results (before username/ID resolution)
  */
 export interface UnresolvedDailyResults {
-  gameDate: string;
-  wordleNumber?: number;
-  results: UnresolvedPlayerResult[];
+  gameDate: string
+  wordleNumber?: number
+  results: UnresolvedPlayerResult[]
 }
 
 /**
  * Individual player result from parsed message (fully resolved)
  */
 export interface ParsedPlayerResult {
-  discordId: Snowflake;   // Required - must be resolved before use
-  username: string;       // Username from Discord
-  guessCount: number;     // 1-6 for successful, 7 for failed (x/6)
-  hasCrown: boolean;      // Whether this player had the best score (crown emoji)
+  discordId: Snowflake // Required - must be resolved before use
+  username: string // Username from Discord
+  guessCount: number // 1-6 for successful, 7 for failed (x/6)
+  hasCrown: boolean // Whether this player had the best score (crown emoji)
 }
 
 /**
@@ -94,76 +94,76 @@ export interface ParsedPlayerResult {
  * Used internally by the message parser before resolution
  */
 export interface UnresolvedPlayerResult {
-  discordId?: Snowflake;  // Optional - may need to resolve from username
-  username: string;       // Username or nickname from the message
-  guessCount: number;     // 1-6 for successful, 7 for failed (x/6)
-  hasCrown: boolean;      // Whether this player had the best score (crown emoji)
+  discordId?: Snowflake // Optional - may need to resolve from username
+  username: string // Username or nickname from the message
+  guessCount: number // 1-6 for successful, 7 for failed (x/6)
+  hasCrown: boolean // Whether this player had the best score (crown emoji)
 }
 
 /**
  * ELO calculation result for a single player
  */
 export interface EloCalculationResult {
-  playerId: number;
-  discordId: Snowflake;
-  previousElo: number;
-  newElo: number;
-  eloChange: number;
-  guessCount: number;
+  playerId: number
+  discordId: Snowflake
+  previousElo: number
+  newElo: number
+  eloChange: number
+  guessCount: number
 }
 
 /**
  * Pairwise ELO matchup result
  */
 export interface EloMatchup {
-  player1Id: number;
-  player2Id: number;
-  player1Score: number;  // 1 for win, 0.5 for tie, 0 for loss
-  player2Score: number;
+  player1Id: number
+  player2Id: number
+  player1Score: number // 1 for win, 0.5 for tie, 0 for loss
+  player2Score: number
 }
 
 /**
  * Player statistics for display
  */
 export interface PlayerStats {
-  discordId: Snowflake;
-  username: string;
-  elo: number;
-  rank: number;
-  totalGames: number;
-  totalWins: number;
-  totalCrowns: number;  // Games won (best score)
-  averageGuesses: number;
-  winRate: number;  // Percentage
-  isActive: boolean;
-  lastPlayed: string | null;
-  recentGames?: RecentGame[];
+  discordId: Snowflake
+  username: string
+  elo: number
+  rank: number
+  totalGames: number
+  totalWins: number
+  totalCrowns: number // Games won (best score)
+  averageGuesses: number
+  winRate: number // Percentage
+  isActive: boolean
+  lastPlayed: string | null
+  recentGames?: RecentGame[]
 }
 
 /**
  * Recent game info for stats display
  */
 export interface RecentGame {
-  gameDate: string;
-  guessCount: number;
-  eloChange: number;
+  gameDate: string
+  guessCount: number
+  eloChange: number
 }
 
 /**
  * Player data for role assignment
  */
 export interface RolePlayerData {
-  discordId: Snowflake;
-  username: string;
-  elo: number;
+  discordId: Snowflake
+  username: string
+  elo: number
 }
 
 /**
  * Role assignment data (supports multiple players with same ELO)
  */
 export interface RoleAssignment {
-  highestEloPlayers: RolePlayerData[];
-  lowestEloPlayers: RolePlayerData[];
+  highestEloPlayers: RolePlayerData[]
+  lowestEloPlayers: RolePlayerData[]
 }
 
 /**
@@ -171,61 +171,61 @@ export interface RoleAssignment {
  */
 export interface BotConfig {
   discord: {
-    token: string;
-    clientId: Snowflake;
-    guildId?: Snowflake;
-    wordleBotId: Snowflake;
-    highestEloRoleId: Snowflake;
-    lowestEloRoleId: Snowflake;
-  };
+    token: string
+    clientId: Snowflake
+    guildId?: Snowflake
+    wordleBotId: Snowflake
+    highestEloRoleId: Snowflake
+    lowestEloRoleId: Snowflake
+  }
   database: {
-    path: string;
-  };
+    path: string
+  }
   elo: {
-    kFactor: number;
-    defaultRating: number;
-  };
-  inactivityThreshold: number;
-  logLevel: string;
+    kFactor: number
+    defaultRating: number
+  }
+  inactivityThreshold: number
+  logLevel: string
 }
 
 /**
  * Leaderboard entry for future leaderboard command
  */
 export interface LeaderboardEntry {
-  rank: number;
-  discordId: Snowflake;
-  username: string;
-  elo: number;
-  totalGames: number;
-  winRate: number;
-  isActive: boolean;
+  rank: number
+  discordId: Snowflake
+  username: string
+  elo: number
+  totalGames: number
+  winRate: number
+  isActive: boolean
 }
 
 /**
  * Activity update result
  */
 export interface ActivityUpdateResult {
-  playersMarkedInactive: number;
-  playersStillActive: number;
+  playersMarkedInactive: number
+  playersStillActive: number
 }
 
 /**
  * Database query result wrapper
  */
 export interface QueryResult<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
+  success: boolean
+  data?: T
+  error?: string
 }
 
 /**
  * ELO history entry for tracking over time
  */
 export interface EloHistoryEntry {
-  id: number;
-  playerId: number;
-  elo: number;
-  gameDate: string;
-  createdAt: string;
+  id: number
+  playerId: number
+  elo: number
+  gameDate: string
+  createdAt: string
 }

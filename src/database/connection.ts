@@ -1,39 +1,39 @@
 /**
  * Database Connection and Schema
- * 
+ *
  * SQLite database setup with better-sqlite3
  */
 
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import { getLogger } from '../utils/logger';
+import Database from 'better-sqlite3'
+import path from 'path'
+import fs from 'fs'
+import { getLogger } from '../utils/logger'
 
-let db: Database.Database | null = null;
+let db: Database.Database | null = null
 
 /**
  * Initialize database connection and create tables
  */
 export function initDatabase(dbPath: string): Database.Database {
-  const logger = getLogger();
-  
+  const logger = getLogger()
+
   // Ensure directory exists
-  const dir = path.dirname(dbPath);
+  const dir = path.dirname(dbPath)
   if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-    logger.info(`Created database directory: ${dir}`);
+    fs.mkdirSync(dir, { recursive: true })
+    logger.info(`Created database directory: ${dir}`)
   }
 
   // Create database connection
-  db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
-  
-  logger.info(`Database connected: ${dbPath}`);
-  
+  db = new Database(dbPath)
+  db.pragma('journal_mode = WAL')
+
+  logger.info(`Database connected: ${dbPath}`)
+
   // Create tables
-  createTables(db);
-  
-  return db;
+  createTables(db)
+
+  return db
 }
 
 /**
@@ -41,17 +41,17 @@ export function initDatabase(dbPath: string): Database.Database {
  */
 export function getDatabase(): Database.Database {
   if (!db) {
-    throw new Error('Database not initialized. Call initDatabase first.');
+    throw new Error('Database not initialized. Call initDatabase first.')
   }
-  return db;
+  return db
 }
 
 /**
  * Create database tables
  */
 function createTables(database: Database.Database): void {
-  const logger = getLogger();
-  
+  const logger = getLogger()
+
   // Players table
   database.exec(`
     CREATE TABLE IF NOT EXISTS players (
@@ -70,8 +70,8 @@ function createTables(database: Database.Database): void {
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
-  `);
-  
+  `)
+
   // Games table - stores individual game results
   database.exec(`
     CREATE TABLE IF NOT EXISTS games (
@@ -87,8 +87,8 @@ function createTables(database: Database.Database): void {
       FOREIGN KEY (player_id) REFERENCES players(id),
       UNIQUE(player_id, game_date)
     )
-  `);
-  
+  `)
+
   // ELO history table - for tracking ELO over time
   database.exec(`
     CREATE TABLE IF NOT EXISTS elo_history (
@@ -99,8 +99,8 @@ function createTables(database: Database.Database): void {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (player_id) REFERENCES players(id)
     )
-  `);
-  
+  `)
+
   // Daily summary table - for quick lookups
   database.exec(`
     CREATE TABLE IF NOT EXISTS daily_summaries (
@@ -114,8 +114,8 @@ function createTables(database: Database.Database): void {
       FOREIGN KEY (highest_elo_player_id) REFERENCES players(id),
       FOREIGN KEY (lowest_elo_player_id) REFERENCES players(id)
     )
-  `);
-  
+  `)
+
   // Create indexes for performance
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_players_discord_id ON players(discord_id);
@@ -125,12 +125,12 @@ function createTables(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_games_date ON games(game_date);
     CREATE INDEX IF NOT EXISTS idx_elo_history_player ON elo_history(player_id);
     CREATE INDEX IF NOT EXISTS idx_elo_history_date ON elo_history(game_date);
-  `);
-  
+  `)
+
   // Run migrations for existing databases
-  runMigrations(database);
-  
-  logger.info('Database tables created/verified');
+  runMigrations(database)
+
+  logger.info('Database tables created/verified')
 }
 
 /**
@@ -138,9 +138,9 @@ function createTables(database: Database.Database): void {
  */
 export function closeDatabase(): void {
   if (db) {
-    db.close();
-    db = null;
-    getLogger().info('Database connection closed');
+    db.close()
+    db = null
+    getLogger().info('Database connection closed')
   }
 }
 
@@ -148,17 +148,25 @@ export function closeDatabase(): void {
  * Run database migrations for existing databases
  */
 function runMigrations(database: Database.Database): void {
-  const logger = getLogger();
-  
+  const logger = getLogger()
+
   // Check if total_crowns column exists in players table
-  const tableInfo = database.prepare("PRAGMA table_info(players)").all() as Array<{ name: string }>;
-  const hasColumnTotalCrowns = tableInfo.some(col => col.name === 'total_crowns');
-  
+  const tableInfo = database
+    .prepare('PRAGMA table_info(players)')
+    .all() as Array<{ name: string }>
+  const hasColumnTotalCrowns = tableInfo.some(
+    (col) => col.name === 'total_crowns'
+  )
+
   if (!hasColumnTotalCrowns) {
-    logger.info('Running migration: Adding total_crowns column to players table');
-    database.exec(`ALTER TABLE players ADD COLUMN total_crowns INTEGER DEFAULT 0`);
-    logger.info('Migration complete: total_crowns column added');
+    logger.info(
+      'Running migration: Adding total_crowns column to players table'
+    )
+    database.exec(
+      `ALTER TABLE players ADD COLUMN total_crowns INTEGER DEFAULT 0`
+    )
+    logger.info('Migration complete: total_crowns column added')
   }
 }
 
-export default getDatabase;
+export default getDatabase
