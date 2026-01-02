@@ -175,8 +175,8 @@ export interface BotConfig {
     clientId: Snowflake
     guildId?: Snowflake
     wordleBotId: Snowflake
-    highestEloRoleId: Snowflake
-    lowestEloRoleId: Snowflake
+    highestEloRoleId?: Snowflake
+    lowestEloRoleId?: Snowflake
   }
   database: {
     path: string
