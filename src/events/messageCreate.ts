@@ -87,12 +87,11 @@ export function registerMessageHandler(
       updatePlayerActivity(gameDate, config.inactivityThreshold)
 
       // Update roles
-      if (message.guild) {
-        await updateRoles(
-          message.guild,
-          config.discord.highestEloRoleId,
-          config.discord.lowestEloRoleId
-        )
+      const highestEloRoleId = config.discord.highestEloRoleId
+      const lowestEloRoleId = config.discord.lowestEloRoleId
+
+      if (message.guild && highestEloRoleId && lowestEloRoleId) {
+        await updateRoles(message.guild, highestEloRoleId, lowestEloRoleId)
       }
 
       // Get updated standings

@@ -42,8 +42,8 @@ An ELO-based ranking system for Discord's Wordle bot. Track player performance, 
    DISCORD_BOT_TOKEN=your_bot_token
    DISCORD_CLIENT_ID=your_client_id
    DISCORD_GUILD_ID=your_guild_id  # Optional, for faster command registration
-   HIGHEST_ELO_ROLE_ID=your_role_id
-   LOWEST_ELO_ROLE_ID=your_role_id
+   HIGHEST_ELO_ROLE_ID=your_role_id # Optional, disabled if not defined
+   LOWEST_ELO_ROLE_ID=your_role_id # Optional, disabled if not defined
    ```
 
 5. Deploy slash commands:
@@ -79,7 +79,7 @@ An ELO-based ranking system for Discord's Wordle bot. Track player performance, 
    - Select permissions: `Manage Roles`, `Send Messages`, `Read Message History`, `Use Slash Commands`
 7. Use the generated URL to invite the bot to your server
 
-## Creating Roles
+## Creating Roles (Optional)
 
 Create two roles in your Discord server:
 

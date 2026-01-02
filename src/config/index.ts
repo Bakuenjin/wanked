@@ -55,8 +55,8 @@ export function loadConfig(): BotConfig {
         'WORDLE_BOT_ID',
         '1211781489931452447'
       ) as Snowflake,
-      highestEloRoleId: getRequiredEnv('HIGHEST_ELO_ROLE_ID') as Snowflake,
-      lowestEloRoleId: getRequiredEnv('LOWEST_ELO_ROLE_ID') as Snowflake
+      highestEloRoleId: process.env.HIGHEST_ELO_ROLE_ID as Snowflake | undefined,
+      lowestEloRoleId: process.env.LOWEST_ELO_ROLE_ID as Snowflake | undefined
     },
     database: {
       path: getOptionalEnv('DATABASE_PATH', './data/wordle_ranked.db')
